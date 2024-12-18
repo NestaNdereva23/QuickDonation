@@ -3,6 +3,8 @@ from .models import Organizations
 from .forms import DonationForm
 from django.contrib import messages
 from mpesa_integration.mpesa_client import MpesaClient
+import json
+from django.http import JsonResponse
 import logging
 
 logger = logging.getLogger(__name__)
@@ -56,3 +58,17 @@ def donation_page(request):
         form = DonationForm()
 
     return render(request, 'donations/donation.html', {"orgs":orgs, "form":form})
+
+"""
+    handle the callback url
+"""
+def mpesa_callback(request):
+    if request.method =='POST':
+        callback_data = json.loads(request.body)
+
+        #process the callback data
+        print("Callback Data:", callback_data)
+
+        #Return a success response to Saf
+        return JsonResponse({"ResultCode": 0, "ResultDesc": "Accepted"})
+    return JsonResponse({"ResultCode": 1, "ResultDesc": "Invalid Request"}, status=400)

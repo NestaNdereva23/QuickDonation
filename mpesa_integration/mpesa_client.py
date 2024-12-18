@@ -52,7 +52,7 @@ class MpesaClient:
             "Amount": int(amount),
             "PartyB": self.shortcode,
             "PhoneNumber": phone_number,
-            "CallBackURL": "https://your-callback-url.com/mpesa/callback/",
+            "CallBackURL": "https://9240-41-209-57-164.ngrok-free.app/mpesa/callback/",
             "AccountReference": account_reference,
             "TransactionDesc": "Donation"
         }
