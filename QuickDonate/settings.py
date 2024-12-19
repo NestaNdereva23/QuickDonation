@@ -25,7 +25,7 @@ SECRET_KEY = env('SECRET_KEY')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS= ['127.0.0.1', '9240-41-209-57-164.ngrok-free.app']
+ALLOWED_HOSTS= ['127.0.0.1', 'd2af-41-209-57-164.ngrok-free.app']
 # Application definition
 
 INSTALLED_APPS = [
@@ -134,3 +134,4 @@ MPESA_CONSUMER_KEY= env('MPESA_CONSUMER_KEY')
 MPESA_CONSUMER_SECRET= env('MPESA_CONSUMER_SECRET')
 MPESA_SHORTCODE= env('MPESA_SHORTCODE')
 MPESA_PASSKEY= env('MPESA_PASSKEY')
+CALLBACK_URL= env('CALLBACK_URL')

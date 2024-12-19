@@ -1,9 +1,7 @@
 from django.db import models
-#from phonenumber_field.modelfields import PhoneNumberField
 import uuid
-# Create your models here.
-class Organizations(models.Model):
 
+class Organizations(models.Model):
     organization_name = models.CharField(max_length=123)
     location = models.CharField(max_length=123)
     description = models.TextField(max_length=1000)
@@ -13,31 +11,39 @@ class Organizations(models.Model):
         return f'{self.organization_name}'
 
 class Donation(models.Model):
+    STATUS_CHOICES = [
+        ('Pending', 'Pending'),
+        ('Processing', 'Processing'),
+        ('Success', 'Success'),
+        ('Failed', 'Failed'),
+    ]
+
+    donation_id = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
+    organization = models.ForeignKey(Organizations, on_delete=models.CASCADE, related_name='donations')
     phone_number = models.CharField(max_length=15)
     amount = models.DecimalField(max_digits=10, decimal_places=2)
     timestamp = models.DateTimeField(auto_now_add=True)
-    status = models.CharField(max_length=20, default='Pending')
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='Pending')
 
     def __str__(self):
-        return f"Donation from {self.phone_number}"
+        return f"Donation {self.donation_id} from {self.phone_number}"
 
+class Transaction(models.Model):
+    STATUS_CHOICES = [
+        ('Pending', 'Pending'),
+        ('Complete', 'Complete'),
+    ]
 
+    transaction_no = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
+    phone_number = models.CharField(max_length=15)
+    checkout_request_id = models.CharField(max_length=200)
+    reference = models.CharField(max_length=40, blank=True)
+    description = models.TextField(null=True, blank=True)
+    amount = models.DecimalField(max_digits=10, decimal_places=2)
+    status = models.CharField(max_length=15, choices=STATUS_CHOICES, default='Pending')
+    receipt_no = models.CharField(max_length=200, blank=True, null=True)
+    created = models.DateTimeField(auto_now_add=True)
+    ip = models.GenericIPAddressField(blank=True, null=True)
 
-# STATUS = ((1, "Pending"), (0, "Complete"))
-
-# class Transaction(models.Model):
-#     '''This model records all the mpesa payment transactions'''
-
-#     transaction_no = models.CharField(default=uuid.uuid4, max_length=50, unique=True)
-#     phone_number = PhoneNumberField(null=False, blank=False)
-#     checkout_request_id = models.CharField(max_length=200)
-#     reference = models.CharField(max_length=40, blank=True)
-#     description = models.TextField(null=True, blank=True)
-#     amount = models.CharField(max_length=10)
-#     status = models.CharField(max_length=15, choices=STATUS, default=1)
-#     receipt_no = models.CharField(max_length=200, blank=True, null=True)
-#     created = models.DateTimeField(auto_now_add=True)
-#     ip = models.CharField(max_length=200, blank=True, null=True)
-
-#     def __unicode__(self):
-#         return f"{self.transaction_no}"
+    def __str__(self):
+        return f"Transaction {self.transaction_no} - {self.status}"

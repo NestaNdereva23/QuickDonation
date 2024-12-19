@@ -28,19 +28,30 @@
                 <form class="space-y-6" action="" method="post">
                     {% csrf_token %}
                     <h5 class="text-xl font-medium text-gray-900 dark:text-white">Donate to our organization</h5>
-                    <!-- {{form.as_p}} -->
+                
+                    <div>
+                        <label for="organization" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Organization</label>
+                        {{ form.organization }}
+                    </div>
+                
                     <div>
                         <label for="phoneno" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Phone Number</label>
-                        <input type="text" name="phone_number" id="phoneno" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white" placeholder="0712333000" required />
-                    
+                        {{ form.phone_number }}
                     </div>
+                
                     <div>
                         <label for="amount" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Amount</label>
-                        <input type="number" name="amount" id="amount" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white" placeholder="100" required />
+                        {{ form.amount }}
                     </div>
-
+                
                     <button type="submit" class="w-full text-white bg-lime-700 hover:bg-lime-500 focus:ring-4 focus:outline-none focus:ring-lime-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-lime-600 dark:hover:bg-lime-700 dark:focus:ring-lime-800">Make Donation</button>
                 </form>
+                
+
+                <div id="loading-spinner" class="hidden fixed inset-0 flex items-center justify-center bg-gray-800 bg-opacity-50 z-50">
+                    <div class="w-16 h-16 border-4 border-t-4 border-white border-t-transparent rounded-full animate-spin"></div>
+                    <p class="ml-4 text-white text-lg">Processing your donation...</p>
+                </div>
             </div>
 
         </div> 
@@ -51,3 +62,18 @@
 
 
 {%endblock%}
+
+<script>
+    const form = document.querySelector('form');
+    const spinner = document.getElementById('loading-spinner');
+
+    form.addEventListener('submit', (event) => {
+        event.preventDefault(); // Prevent the form from submitting immediately
+        spinner.classList.remove('hidden'); // Show spinner
+
+        setTimeout(() => {
+            spinner.classList.add('hidden'); // Hide spinner after timeout
+            alert('Donation request timed out. Please check your phone or try again.');
+        }, 60000); // 60-second timeout
+    });
+</script>
