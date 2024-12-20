@@ -34,6 +34,7 @@ class Transaction(models.Model):
         ('Complete', 'Complete'),
     ]
 
+    donation = models.ForeignKey(Donation, on_delete=models.CASCADE, related_name='transactions', null=True, blank=True)
     transaction_no = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
     phone_number = models.CharField(max_length=15)
     checkout_request_id = models.CharField(max_length=200)

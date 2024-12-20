@@ -1,5 +1,5 @@
 from django.shortcuts import render, redirect
-from .models import Organizations, Donation
+from .models import Organizations, Donation, Transaction
 from .forms import DonationForm
 from django.contrib import messages
 from mpesa_integration.mpesa_client import MpesaClient
@@ -7,6 +7,8 @@ import json
 from django.http import JsonResponse
 import logging
 from time import sleep
+from django.views.decorators.csrf import csrf_exempt
+
 
 logger = logging.getLogger(__name__)
 # Create your views here.
@@ -55,6 +57,12 @@ def donation_page(request):
                 logger.info(f"Mpesa Response: {mpesa_response}")
 
                 if mpesa_response and mpesa_response.get('ResponseCode') == '0':
+                    transaction = Transaction.objects.create(
+                        phone_number=phone_number,
+                        amount=amount,
+                        checkout_request_id=mpesa_response.get('CheckoutRequestID'),
+                        donation=donation,
+                    )
                     donation.status = 'Processing'
                     messages.success(request, 'Donation request sent! Check your phone.')
                     return render(request, 'donations/donation.html', {"donation_id": donation.id, "orgs": orgs, "form": form})
@@ -76,37 +84,71 @@ def donation_page(request):
 """
     handle the callback url
 """
+@csrf_exempt
 def mpesa_callback(request):
     if request.method == 'POST':
-        callback_data = json.loads(request.body)
+        try:
+            callback_data = json.loads(request.body)
+            logger.info(f"Received Callback: {callback_data}")
 
-        # Update donation record
-        result_code = callback_data.get('Body', {}).get('stkCallback', {}).get('ResultCode')
-        receipt_number = callback_data.get('Body', {}).get('stkCallback', {}).get('CallbackMetadata', {}).get('Item', [])
+            result_code = callback_data.get('Body', {}).get('stkCallback', {}).get('ResultCode')
+            checkout_request_id = callback_data.get('Body', {}).get('stkCallback', {}).get('CheckoutRequestID')
+            metadata_items = callback_data.get('Body', {}).get('stkCallback', {}).get('CallbackMetadata', {}).get('Item', [])
 
-        donation_id = ...  # Extract from callback_data or store it during the STK push
-        donation = Donation.objects.filter(id=donation_id).first()
+            # Extract receipt number and other details from metadata
+            receipt_number = None
+            for item in metadata_items:
+                if item.get('Name') == 'MpesaReceiptNumber':
+                    receipt_number = item.get('Value')
 
-        if donation:
+            # Retrieve the transaction
+            transaction = Transaction.objects.filter(checkout_request_id=checkout_request_id).first()
+            if not transaction:
+                logger.error(f"Transaction with CheckoutRequestID {checkout_request_id} not found.")
+                return JsonResponse({"ResultCode": 1, "ResultDesc": "Transaction not found"}, status=404)
+
+            # Update transaction and donation
             if result_code == 0:
-                donation.status = 'Success'
-                donation.receipt_number = receipt_number
+                transaction.status = 'Complete'
+                transaction.receipt_no = receipt_number
+                transaction.save()
+
+                if transaction.donation:
+                    donation = transaction.donation
+                    donation.status = 'Success'
+                    donation.save()
+
             else:
-                donation.status = 'Failed'
-            donation.save()
+                transaction.status = 'Failed'
+                transaction.save()
 
-        return JsonResponse({"ResultCode": 0, "ResultDesc": "Accepted"})
+                if transaction.donation:
+                    donation = transaction.donation
+                    donation.status = 'Failed'
+                    donation.save()
+
+            return JsonResponse({"ResultCode": 0, "ResultDesc": "Accepted"})
+        except json.JSONDecodeError:
+            logger.error("Invalid JSON in callback data.")
+            return JsonResponse({"ResultCode": 1, "ResultDesc": "Invalid JSON"}, status=400)
+        except Exception as e:
+            logger.error(f"Error processing callback: {str(e)}")
+            return JsonResponse({"ResultCode": 1, "ResultDesc": "Internal Server Error"}, status=500)
+
     return JsonResponse({"ResultCode": 1, "ResultDesc": "Invalid Request"}, status=400)
+ 
+import asyncio
+from django.http import JsonResponse
+from asgiref.sync import sync_to_async
 
-def check_status(request, donation_id):
+async def check_status(request, donation_id):
     timeout = 60
     interval = 5
-
     for _ in range(0, timeout, interval):
-        donation = Donation.objects.filter(id=donation_id).first()
+        donation = await sync_to_async(Donation.objects.filter(id=donation_id).first)()
         if donation and donation.status in ['Success', 'Failed']:
             return JsonResponse({"status": donation.status})
         
-        sleep(interval)
+        await asyncio.sleep(interval)
 
-        return JsonResponse({"status": "Timeout"})
+    return JsonResponse({"status": "Timeout"})
